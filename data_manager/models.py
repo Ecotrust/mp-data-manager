@@ -8,13 +8,13 @@ from django.core.urlresolvers import reverse
 # From MARCO/utils.py
 def get_domain(port=8010):
     try:
-        #domain = Site.objects.all()[0].domain 
+        #domain = Site.objects.all()[0].domain
         domain = Site.objects.get(id=SITE_ID).domain
         if 'localhost' in domain:
             domain = 'localhost:%s' %port
         domain = 'http://' + domain
     except:
-        domain = '..'   
+        domain = '..'
     #print domain
     return domain
 
@@ -37,12 +37,13 @@ class ThemeSite(models.Model):
     class Meta:
         auto_created = True
         unique_together = ('theme', 'site')
+        app_label = 'data_manager'
 
 class Theme(models.Model, SiteFlags):
     site = models.ManyToManyField(Site, through=ThemeSite)
     display_name = models.CharField(max_length=100)
     name = models.CharField(max_length=100)
-    order = models.PositiveSmallIntegerField(default=10, blank=True, null=True, help_text='input an integer to determine the priority/order of the layer being displayed (1 being the highest)') 
+    order = models.PositiveSmallIntegerField(default=10, blank=True, null=True, help_text='input an integer to determine the priority/order of the layer being displayed (1 being the highest)')
     visible = models.BooleanField(default=True)
     header_image = models.CharField(max_length=255, blank=True, null=True)
     header_attrib = models.CharField(max_length=255, blank=True, null=True)
@@ -53,7 +54,7 @@ class Theme(models.Model, SiteFlags):
     factsheet_thumb = models.CharField(max_length=255, blank=True, null=True)
     factsheet_link = models.CharField(max_length=255, blank=True, null=True)
 
-    # not really using these atm    
+    # not really using these atm
     feature_image = models.CharField(max_length=255, blank=True, null=True)
     feature_excerpt = models.TextField(blank=True, null=True)
     feature_link = models.CharField(max_length=255, blank=True, null=True)
@@ -72,7 +73,7 @@ class Theme(models.Model, SiteFlags):
     def learn_link(self):
         domain = get_domain(8000)
         return '%s/learn/%s' %(domain, self.name)
-        
+
     @property
     def toDict(self):
         layers = [layer.id for layer in self.layer_set.filter(is_sublayer=False).exclude(layer_type='placeholder')]
@@ -87,6 +88,9 @@ class Theme(models.Model, SiteFlags):
         }
         return themes_dict
 
+    class Meta:
+        app_label = 'data_manager'
+
 class LayerSite(models.Model):
     layer = models.ForeignKey('Layer')
     site = models.ForeignKey(Site)
@@ -94,6 +98,7 @@ class LayerSite(models.Model):
     class Meta:
         auto_created = True
         unique_together = ('layer', 'site')
+        app_label = 'data_manager'
 
 class Layer(models.Model, SiteFlags):
     TYPE_CHOICES = (
@@ -107,7 +112,7 @@ class Layer(models.Model, SiteFlags):
     )
     site = models.ManyToManyField(Site, through=LayerSite)
     name = models.CharField(max_length=100)
-    order = models.PositiveSmallIntegerField(default=10, blank=True, null=True, help_text='input an integer to determine the priority/order of the layer being displayed (1 being the highest)') 
+    order = models.PositiveSmallIntegerField(default=10, blank=True, null=True, help_text='input an integer to determine the priority/order of the layer being displayed (1 being the highest)')
     slug_name = models.CharField(max_length=100, blank=True, null=True)
     layer_type = models.CharField(max_length=50, choices=TYPE_CHOICES, help_text='use placeholder to temporarily remove layer from TOC')
     url = models.CharField(max_length=255, blank=True, null=True)
@@ -128,16 +133,16 @@ class Layer(models.Model, SiteFlags):
     legend_title = models.CharField(max_length=255, blank=True, null=True, help_text='alternative to using the layer name')
     legend_subtitle = models.CharField(max_length=255, blank=True, null=True)
     utfurl = models.CharField(max_length=255, blank=True, null=True)
-    
+
     #tooltip
     description = models.TextField(blank=True, null=True)
-    
+
     #data description (updated fact sheet) (now the Learn pages)
     data_overview = models.TextField(blank=True, null=True)
     data_source = models.CharField(max_length=255, blank=True, null=True)
     data_notes = models.TextField(blank=True, null=True)
-    
-    #data catalog links    
+
+    #data catalog links
     bookmark = models.CharField(max_length=755, blank=True, null=True, help_text='link to view data layer in the planner')
     kml = models.CharField(max_length=255, blank=True, null=True, help_text='link to download the KML')
     data_download = models.CharField(max_length=255, blank=True, null=True, help_text='link to download the data')
@@ -176,13 +181,13 @@ class Layer(models.Model, SiteFlags):
     @property
     def is_parent(self):
         return self.sublayers.all().count() > 0 and not self.is_sublayer
-    
+
     @property
     def parent(self):
         if self.is_sublayer:
             return self.sublayers.all()[0]
         return self
-        
+
     def get_absolute_url(self):
         theme = self.themes.filter(visible=True).first()
         if theme:
@@ -200,21 +205,21 @@ class Layer(models.Model, SiteFlags):
             return self.parent.data_overview
         else:
             return self.data_overview
-        
+
     @property
     def data_source_text(self):
         if not self.data_source and self.is_sublayer:
             return self.parent.data_source
         else:
             return self.data_source
-        
+
     @property
     def data_notes_text(self):
         if not self.data_notes and self.is_sublayer:
             return self.parent.data_notes
         else:
             return self.data_notes
-    
+
     @property
     def bookmark_link(self):
         if self.bookmark:
@@ -235,7 +240,7 @@ class Layer(models.Model, SiteFlags):
             return self.parent.data_download
         else:
             return self.data_download
-        
+
     @property
     def metadata_link(self):
         if self.metadata and self.metadata.lower() == 'none':
@@ -244,7 +249,7 @@ class Layer(models.Model, SiteFlags):
             return self.parent.metadata
         else:
             return self.metadata
-        
+
     @property
     def source_link(self):
         if self.source and self.source.lower() == 'none':
@@ -252,21 +257,21 @@ class Layer(models.Model, SiteFlags):
         if not self.source and self.is_sublayer:
             return self.parent.source
         else:
-            return self.source        
-        
+            return self.source
+
     @property
     def description_link(self):
         theme_name = self.themes.all()[0].name
         domain = get_domain(8000)
         return '%s/learn/%s#%s' %(domain, theme_name, self.slug)
-        
+
     @property
     def tiles_link(self):
         if self.is_shareable and self.layer_type in ['XYZ', 'ArcRest', 'WMS']:
             domain = get_domain(8000)
             return self.slug
         return None
-        
+
     @property
     def tooltip(self):
         if self.description and self.description.strip() != '':
@@ -275,7 +280,7 @@ class Layer(models.Model, SiteFlags):
             return self.parent.description
         else:
             return self.data_overview_text
-            
+
     @property
     def is_shareable(self):
         if self.shareable_url == False:
@@ -283,18 +288,18 @@ class Layer(models.Model, SiteFlags):
         if self.parent and self.parent.shareable_url == False:
             return False
         return True
-            
+
     def serialize_attributes(self):
         return {'compress_attributes': self.compress_display,
                 'event': self.attribute_event,
                 'attributes': [{'display': attr.display_name, 'field': attr.field_name, 'precision': attr.precision} for attr in self.attribute_fields.all().order_by('order')],
                 'mouseover_attribute': self.mouseover_field }
-    
+
     @property
     def serialize_lookups(self):
-        return {'field': self.lookup_field, 
+        return {'field': self.lookup_field,
                 'details': [{'value': lookup.value, 'color': lookup.color, 'dashstyle': lookup.dashstyle, 'fill': lookup.fill, 'graphic': lookup.graphic} for lookup in self.lookup_table.all()]}
-    
+
     @property
     def toDict(self):
         sublayers = [
@@ -337,7 +342,7 @@ class Layer(models.Model, SiteFlags):
                 'disabled_message': layer.disabled_message,
                 'data_url': layer.get_absolute_url(),
                 'has_companion': layer.has_companion
-            } 
+            }
             for layer in self.sublayers.all()
         ]
         connect_companion_layers_to = [
@@ -380,7 +385,7 @@ class Layer(models.Model, SiteFlags):
                 'disabled_message': layer.disabled_message,
                 'data_url': layer.get_absolute_url(),
                 'has_companion': layer.has_companion
-            } 
+            }
             for layer in self.connect_companion_layers_to.all()
         ]
         layers_dict = {
@@ -426,20 +431,26 @@ class Layer(models.Model, SiteFlags):
             'data_url': self.get_absolute_url()
         }
         return layers_dict
-        
+
     def save(self, *args, **kwargs):
         self.slug_name = self.slug
         super(Layer, self).save(*args, **kwargs)
+
+    class Meta:
+        app_label = 'data_manager'
 
 class AttributeInfo(models.Model):
     display_name = models.CharField(max_length=255, blank=True, null=True)
     field_name = models.CharField(max_length=255, blank=True, null=True)
     precision = models.IntegerField(blank=True, null=True)
     order = models.IntegerField(default=1)
-    
+
     def __unicode__(self):
-        return unicode('%s' % (self.field_name)) 
-    
+        return unicode('%s' % (self.field_name))
+
+    class Meta:
+        app_label = 'data_manager'
+
 class LookupInfo(models.Model):
     DASH_CHOICES = (
         ('dot', 'dot'),
@@ -454,11 +465,14 @@ class LookupInfo(models.Model):
     dashstyle = models.CharField(max_length=11, choices=DASH_CHOICES, default='solid')
     fill = models.BooleanField(default=False)
     graphic = models.CharField(max_length=255, blank=True, null=True)
-    
+
     def __unicode__(self):
-        return unicode('%s' % (self.value)) 
-    
-        
+        return unicode('%s' % (self.value))
+
+    class Meta:
+        app_label = 'data_manager'
+
+
 class DataNeed(models.Model):
     name = models.CharField(max_length=100)
     archived = models.BooleanField(default=False)
@@ -474,6 +488,9 @@ class DataNeed(models.Model):
     @property
     def html_name(self):
         return self.name.lower().replace(' ', '-')
-    
+
     def __unicode__(self):
         return unicode('%s' % (self.name))
+
+    class Meta:
+        app_label = 'data_manager'

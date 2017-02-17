@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django import forms
-from models import *
+from data_manager.models import *
 
 from import_export import fields, resources
 from import_export.admin import ImportExportMixin
@@ -64,4 +64,3 @@ admin.site.register(Layer, LayerAdmin)
 admin.site.register(AttributeInfo, AttributeInfoAdmin)
 admin.site.register(LookupInfo, LookupInfoAdmin)
 admin.site.register(DataNeed, DataNeedAdmin)
-
