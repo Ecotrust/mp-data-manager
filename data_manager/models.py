@@ -189,11 +189,15 @@ class Layer(models.Model, SiteFlags):
         return self
 
     def get_absolute_url(self):
-        theme = self.themes.filter(visible=True).first()
-        if theme:
-            theme_url = reverse('portal.data_catalog.views.theme', args=[theme.name])
-            if theme_url:
-                return "{0}#layer-info-{1}".format(theme_url, self.slug)
+        try:
+            theme = self.themes.filter(visible=True).first()
+            if theme:
+                theme_url = reverse('portal.data_catalog.views.theme', args=[theme.name])
+                if theme_url:
+                    return "{0}#layer-info-{1}".format(theme_url, self.slug)
+            return None
+        except Exception as e:
+            return None
 
     @property
     def slug(self):
