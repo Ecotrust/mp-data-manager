@@ -63,11 +63,31 @@ class Theme(models.Model, SiteFlags):
     all_objects = models.Manager()
 
     def url(self):
+        from django.conf import settings
+        if hasattr(settings, 'INITIAL_X'):
+            initial_x = settings.INITIAL_X
+        else:
+            initial_x = -73.24
+        if hasattr(settings, 'INITIAL_Y'):
+            initial_y = settings.INITIAL_Y
+        else:
+            initial_y = 38.93
+        if hasattr(settings, 'INITIAL_Z'):
+            initial_z = settings.INITIAL_Z
+        else:
+            initial_z = 7
+        if hasattr(settings, 'INITIAL_BASEMAP'):
+            initial_basemap = settings.INITIAL_BASEMAP
+        else:
+            initial_basemap = "Ocean"
         id = self.id
-        return '/visualize/#x=-73.24&y=38.93&z=7&logo=true&controls=true&basemap=Ocean&themes[ids][]=%s&tab=data&legends=false&layers=true' % (id)
+        return '/visualize/#x=%d&y=%d&z=%d&logo=true&controls=true&basemap=%s&themes[ids][]=%s&tab=data&legends=false&layers=true' % (initial_x, initial_y, initial_z, initial_basemap, id)
 
     def __unicode__(self):
         return unicode('%s' % (self.name))
+
+    def __str__(self):
+        return self.display_name
 
     @property
     def learn_link(self):
