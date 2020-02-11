@@ -7,14 +7,14 @@ from django.db import models, migrations
 class Migration(migrations.Migration):
 
     dependencies = [
-        ('data_manager', '0007_auto_20160304_0057'),
+        ('data_manager', '0019_auto_20171120_2310'),
     ]
 
     operations = [
-        migrations.AddField(
+        migrations.AlterField(
             model_name='layer',
-            name='search_query',
-            field=models.BooleanField(default=False, help_text='Select when layers are queryable - e.g. MDAT and CAS'),
+            name='slug_name',
+            field=models.CharField(max_length=200, null=True, blank=True),
             preserve_default=True,
         ),
     ]
