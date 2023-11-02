@@ -184,6 +184,7 @@ class Layer(models.Model, SiteFlags):
     proxy_url = models.BooleanField(default=False, help_text="proxy layer url through marine planner")
     arcgis_layers = models.CharField(max_length=255, blank=True, null=True, help_text='comma separated list of arcgis layer IDs')
     query_by_point = models.BooleanField(default=False, help_text='Do not buffer selection clicks (not recommended for point or line data)')
+    query_buffer = models.IntegerField(blank=True, null=True, default=None, help_text='custom number of pixels to buffer click queries (radius of point data icon)')
     disable_arcgis_attributes = models.BooleanField(default=False, help_text='Click to disable clickable ArcRest layers')
     wms_help = models.BooleanField(default=False, help_text='Enable simple selection for WMS fields. Only supports WMS 1.1.1')
     wms_slug = models.CharField(max_length=255, blank=True, null=True, verbose_name='WMS Layer Name')
@@ -605,6 +606,7 @@ class Layer(models.Model, SiteFlags):
                 'arcgis_layers': layer.arcgis_layers,
                 'password_protected': layer.password_protected,
                 'query_by_point': layer.query_by_point,
+                'query_buffer': layer.query_buffer,
                 'proxy_url': layer.proxy_url,
                 'disable_arcgis_attributes': layer.disable_arcgis_attributes,
                 'wms_slug': layer.wms_slug,
@@ -672,6 +674,7 @@ class Layer(models.Model, SiteFlags):
                 'arcgis_layers': layer.arcgis_layers,
                 'password_protected': layer.password_protected,
                 'query_by_point': layer.query_by_point,
+                'query_buffer': layer.query_buffer,
                 'proxy_url': layer.proxy_url,
                 'disable_arcgis_attributes': layer.disable_arcgis_attributes,
                 'wms_slug': layer.wms_slug,
@@ -738,6 +741,7 @@ class Layer(models.Model, SiteFlags):
             'arcgis_layers': self.arcgis_layers,
             'password_protected': self.password_protected,
             'query_by_point': self.query_by_point,
+            'query_buffer': self.query_buffer,
             'proxy_url': self.proxy_url,
             'disable_arcgis_attributes': self.disable_arcgis_attributes,
             'wms_slug': self.wms_slug,
