@@ -487,12 +487,13 @@ class Layer(models.Model, SiteFlags):
                 'details': [{'value': lookup.value, 'color': lookup.color, 'stroke_color': lookup.stroke_color, 'stroke_width': lookup.stroke_width, 'dashstyle': lookup.dashstyle, 'fill': lookup.fill, 'graphic': lookup.graphic, 'graphic_scale': lookup.graphic_scale} for lookup in self.lookup_table.all()]}
 
     def get_espis_link(self):
-        if self.espis_enabled:
+        if settings.ESPIS_ENABLED and self.espis_enabled:
             search_dict = {}
             if self.espis_search:
-                search_dict['txt'] = self.espis_search
+                search_dict['q'] = self.espis_search
             if self.espis_region:
-                search_dict['geo'] = self.espis_region
+                if self.espis_region == "Mid Atlantic":
+                    search_dict['bbox'] = "-81.71531609374854, 35.217958254501944, -69.19090203125185, 45.12716611403635"
             if len(search_dict) > 0:
                 try:
                     # python 3
@@ -500,8 +501,9 @@ class Layer(models.Model, SiteFlags):
                 except (ModuleNotFoundError, ImportError) as e:
                     #python 2
                     from urllib import urlencode
-                return 'https://marinecadastre.gov/espis/#/search/%s' % urlencode(search_dict)
-        return None
+                return 'https://esp-boem.hub.arcgis.com/search?%s' % urlencode(search_dict)
+
+        return False
 
     def dimensionRecursion(self, dimensions, associations):
         associationArray = {}
@@ -814,6 +816,7 @@ class Layer(models.Model, SiteFlags):
 
         sublayers = [sublayer.catalogDict(site_id) for sublayer in self.sublayers.filter(is_sublayer=True).order_by('order')]
         # companions = [companion.catalogDict(site_id) for companion in self.connect_companion_layers_to.all().order_by('order')]
+        
         layers_dict = {
             'id': self.id,
             'name': self.name,
@@ -828,7 +831,7 @@ class Layer(models.Model, SiteFlags):
             'tiles_link': self.tiles_link,
             'description': self.description,
             'data_overview': self.data_overview,
-            'espis_enabled': self.espis_enabled,
+            'espis_enabled': settings.ESPIS_ENABLED and self.espis_enabled,
             'espis_search': self.espis_search,
             'espis_region': self.espis_region,
             'get_espis_link': self.get_espis_link,
