@@ -16,9 +16,9 @@
     CATALOG_TECHNOLOGY = '{{ CATALOG_TECHNOLOGY }}';
     CATALOG_PROXY = '{{ CATALOG_PROXY }}';
   </script>
-  {% ifequal CATALOG_TECHNOLOGY 'GeoPortal2' %}
+  {% if CATALOG_TECHNOLOGY == 'GeoPortal2' %}
     <!-- <script type="text/javascript" src="/geoportal/app/etc/ServiceType.js"></script> -->
-  {% endifequal %}
+  {% endif %}
   <script type="text/javascript" src="{% static 'data_manager/js/layer_form.js' %}"></script>
   {% ifnotequal CATALOG_TECHNOLOGY 'default' %}
     <script type="text/javascript" src="{% static 'data_manager/js/catalog/'|add:CATALOG_TECHNOLOGY|add:'.js' %}"></script>
