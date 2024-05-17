@@ -9,18 +9,19 @@ from django.shortcuts import get_object_or_404
 from django.template import RequestContext
 from django.views.decorators.cache import cache_page
 from .models import *
-from .serializers import BriefLayerSerializer
+from .serializers import LayerSerializer, ThemeSerializer
 from rest_framework import viewsets
 import json, requests
 
 
 
 class LayerViewSet(viewsets.ReadOnlyModelViewSet):
-    """
-    A simple ViewSet for layers.
-    """
     queryset = Layer.all_objects.all()
-    serializer_class = BriefLayerSerializer
+    serializer_class = LayerSerializer
+
+class ThemeViewSet(viewsets.ReadOnlyModelViewSet):
+    queryset = Theme.all_objects.all()
+    serializer_class = ThemeSerializer
 
 def get_themes(request):
     data = {

@@ -151,6 +151,9 @@ class Theme(models.Model, SiteFlags):
             if self.id:
                 cache.delete('data_manager_theme_%d_%d' % (self.id, site.pk))
         super(Theme, self).save(*args, **kwargs)
+    
+    class Meta:
+        app_label = 'data_manager'
 
 class Layer(models.Model, SiteFlags):
     
@@ -396,6 +399,7 @@ class Layer(models.Model, SiteFlags):
     def is_parent(self):
         return self.sublayers.all().count() > 0 and not self.is_sublayer
 
+    # Currently parent layer is stored within sublayers, making nesting impossible
     @property
     def parent(self):
         if self.is_sublayer:

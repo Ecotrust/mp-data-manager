@@ -5,6 +5,7 @@ from . import views
 
 router = routers.DefaultRouter()
 router.register(r'layers', views.LayerViewSet)
+router.register(r'themes', views.ThemeViewSet)
 
 urlpatterns = [
     #'',
