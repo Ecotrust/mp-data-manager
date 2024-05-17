@@ -23,7 +23,7 @@ class LayerViewSet(viewsets.ReadOnlyModelViewSet):
 
 def get_themes(request):
     data = {
-        "themes": [theme.getInitDict() for theme in Theme.objects.all().order_by('order')],
+        "themes": [theme.getInitDict() for theme in Theme.objects.all().order_by('order', 'name')],
     }
     return JsonResponse(data)
 
