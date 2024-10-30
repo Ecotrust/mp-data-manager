@@ -1,27 +1,9 @@
 from django.core.management.base import BaseCommand
-import sys, requests, os, json
+import requests, os, json
 from django.conf import settings
 
 class Command(BaseCommand):
     help = "Import daily-built JSON for Native-Land.ca."
-
-    def build_geojson_from_query(self, layer):
-        print("---Attempting API for '{}'".format(layer))
-        response = requests.get("https://native-land.ca/api/index.php?maps={}".format(layer))
-        print("---Reading JSON from API...")
-        features = json.loads(response.content)
-        print("---Building GeoJSON from API Feature List")
-        geojson = '{"type": "FeatureCollection","features": ['
-        # for feature in features:
-        #     if hasattr(feature, 'id'):
-        #         del feature['id']
-        geojson += ",".join([json.dumps(x) for x in features])
-        geojson += "]}"
-        print("---Writing GeoJSON to file...")
-        with open(os.path.join(settings.MEDIA_ROOT, 'data_manager', 'nativeland', 'nld_{}.json'.format(layer)), "w") as out_file:
-            out_file.write(geojson)
-        print("--- API file created")
-
 
     def is_valid_geojson(self, layer_file):
         
@@ -57,60 +39,40 @@ class Command(BaseCommand):
         
         from urllib.error import URLError
 
-        territories_url = None
-        languages_url = None
-        treaties_url = None
+        if not settings.NATIVE_LAND_API_KEY == None:
 
-        NLD_DATA_DIR = os.path.join(settings.MEDIA_ROOT, 'data_manager', 'nativeland')
-        NLD_BACKUP_DIR = os.path.join(NLD_DATA_DIR, 'backups')
+            NLD_DATA_DIR = os.path.join(settings.MEDIA_ROOT, 'data_manager', 'nativeland')
+            NLD_BACKUP_DIR = os.path.join(NLD_DATA_DIR, 'backups')
 
-        print('Backing up old files...')
-        for layer in ['territories', 'languages', 'treaties']:
-            layer_file = os.path.join(NLD_DATA_DIR, 'nld_{}.json'.format(layer))
-            if self.is_valid_geojson(layer_file):
-                copyfile(layer_file, os.path.join(NLD_BACKUP_DIR, 'nld_{}.json'.format(layer)))
+            api_prefix = 'https://native-land.ca/api/polygons/geojson/'
+            api_postfix = '?key={}'.format(settings.NATIVE_LAND_API_KEY)
+            api_categories = {
+                'territories': 'territories',
+                'languages': 'languages',
+                'treaties': 'treaties',
+            }
 
-        print('Scraping API page for latest links...')
-        nld_api_page = requests.get("https://native-land.ca/resources/api-docs/")
-        content = bs(nld_api_page.content, 'html.parser')
-        for link in content.find_all('a', href=True):
-            if 'indigenousTerritories.json' in link.get('href') or 'Territories' == link.text:
-                territories_url = link.get('href')
-                print('Found: Territories link')
-            if 'indigenousLanguages.json' in link.get('href') or 'Languages' == link.text:
-                languages_url = link.get('href')
-                print('Found: Languages link')
-            if 'indigenousTreaties.json' in link.get('href') or 'Treaties' == link.text:
-                treaties_url = link.get('href')
-                print('Found: Treaties link')
+            for key in api_categories.keys():
+                target_file = os.path.join(NLD_DATA_DIR, 'nld_{}.json'.format(key))
+                backup_file = os.path.join(NLD_BACKUP_DIR, 'nld_{}.json'.format(key))
+                try:
+                    # Make a backup of old data (if valid)
+                    if self.is_valid_geojson(target_file):
+                        copyfile(target_file, backup_file)
+                    # Get the new data
+                    json_data = requests.get(api_prefix + api_categories[key] + api_postfix)
+                    # Write new data to target
+                    with open(target_file, 'wb') as outfile:
+                        outfile.write(json_data.content)
+                    # If new data is no good, restor backup
+                    if not(self.is_valid_geojson(target_file)):
+                        copyfile(backup_file, target_file)
+                    
+                except Exception:
+                    print('Failed to download {}.'.format(key))
+                    pass
 
-        try:
-            print('Downloading: Territories link')
-            terr_file = requests.get(territories_url)
-            with open(os.path.join(NLD_DATA_DIR, 'nld_territories.json'), 'wb') as outfile:
-                outfile.write(terr_file.content)
-        except Exception:
-            print('Failed to download Territories. Attempting API...')
-            self.build_geojson_from_query('territories')
-        try:
-            print('Downloading: Languages link')
-            lang_file = requests.get(languages_url)
-            with open(os.path.join(NLD_DATA_DIR, 'nld_languages.json'), 'wb') as outfile:
-                outfile.write(lang_file.content)
-        except Exception:
-            print('Failed to download Languages. Attempting API...')
-            self.build_geojson_from_query('languages')
-        try:
-            print('Downloading: Treaties link')
-            treaties_file = requests.get(treaties_url)
-            with open(os.path.join(NLD_DATA_DIR, 'nld_treaties.json'), 'wb') as outfile:
-                outfile.write(treaties_file.content)
-        except URLError:
-            print('Failed to download Treaties. Attempting API...')
-            self.build_geojson_from_query('treaties')
-
-        print("COMPLETE")
-
-        
+        else:
+            print("NATIVE_LAND_API_KEY not set in local settings.")
 
                 
