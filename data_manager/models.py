@@ -152,6 +152,9 @@ class Theme(models.Model, SiteFlags):
                 cache.delete('data_manager_theme_%d_%d' % (self.id, site.pk))
         super(Theme, self).save(*args, **kwargs)
 
+    class Meta:
+        ordering = ['order']
+
 class Layer(models.Model, SiteFlags):
     
     WMS_VERSION_CHOICES = (
@@ -321,7 +324,12 @@ class Layer(models.Model, SiteFlags):
 
     @property
     def is_parent(self):
-        return self.sublayers.all().count() > 0 and not self.is_sublayer
+        if self.sublayers.all().count() > 0 and not self.is_sublayer:
+            has_sublayer = False
+            for layer in self.sublayers.all():
+                if layer.is_sublayer:
+                    return True
+        return False
 
     @property
     def parent(self):
@@ -403,8 +411,7 @@ class Layer(models.Model, SiteFlags):
                 companion_str += '&dls%%5B%%5D=false&dls%%5B%%5D=%s&dls%%5B%%5D=%d' % (str(companion.opacity), companion.id)
         themes_str = ''
         if self.themes.all().count() > 0:
-            for theme in self.themes.all():
-                themes_str = '&themes%%5Bids%%5D%%5B%%5D=%d' % theme.id
+            themes_str = '&themes%5Bids%5D%5B%5D={}'.format(self.themes.all().order_by('order', 'name', 'id').first().id)
 
         panel_str = '&tab=data&legends=false&layers=true'
 
