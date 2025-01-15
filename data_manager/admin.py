@@ -8,6 +8,7 @@ from django import forms
 from import_export import fields, resources
 from import_export.admin import ImportExportMixin
 import json
+from django.http import JsonResponse
 
 import nested_admin
 import requests
@@ -391,6 +392,49 @@ class LayerAdmin(RemoteImportExportMixin, nested_admin.NestedModelAdmin):
             qs = qs.order_by(*ordering)
         return qs
 
+    def get_urls(self):
+        urls = super().get_urls()
+        custom_urls = [
+            path('http-status/', self.admin_site.admin_view(self.http_status_view), name='http-status'),
+            path('get-layer-statuses/', self.admin_site.admin_view(self.get_layer_statuses), name='get-layer-statuses'),
+        ]
+        return custom_urls + urls
+
+    def http_status_view(self, request):
+        layers = Layer.objects.all()
+        layer_statuses = {}
+        for layer in layers:
+            if layer.name and layer.url:
+                layer_statuses[layer.name] = layer.url
+        context = dict(
+            self.admin_site.each_context(request),
+            layer_statuses=layer_statuses,
+        )
+        return TemplateResponse(request, "admin/layer_http_status.html", context)
+
+    # async def get_http_status_async(self, url):
+    #     async with aiohttp.ClientSession() as session:
+    #         try:
+    #             async with session.head(url) as response:
+    #                 return response.status
+    #         except aiohttp.ClientError:
+    #             return None
+
+    def get_http_status(self, url):
+        try:
+            response = requests.head(url)
+            return response.status_code
+        except requests.RequestException:
+            return None
+
+    def get_layer_statuses(self, request):
+        layers = Layer.objects.all()
+        layer_statuses = {}
+        for layer in layers:
+            if layer.name and layer.url:
+                layer_statuses[layer.name] = layer.url
+        return JsonResponse(layer_statuses)
+
 class AttributeInfoAdmin(admin.ModelAdmin):
     list_display = ('field_name', 'display_name', 'precision', 'order', 'preserve_format')
 
@@ -399,8 +443,6 @@ class LookupInfoAdmin(admin.ModelAdmin):
 
 class DataNeedAdmin(admin.ModelAdmin):
     list_display = ('name', 'description')
-
-
 
 if hasattr(settings, 'DATA_MANAGER_ADMIN'):
     admin.site.register(Theme, ThemeAdmin)

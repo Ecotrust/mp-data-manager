@@ -1,0 +1,78 @@
+{% extends "admin/base_site.html" %}
+{% block content %}
+
+  <style>
+    .success {
+      background-color: green;
+    }
+    .fail {
+      background-color: red;
+    }
+  </style>
+
+  <script>
+      async function fetchStatus(url) {
+          try {
+              const response = await fetch(url);
+              if (!response.ok) {
+                  throw new Error('Network response was not ok');
+              }
+              const status = await response;
+              return status;
+          } catch (error) {
+              console.error('Fetch error:', error);
+              return null;
+          }
+      }
+      async function fetchLayerStatuses() {
+          const response = await fetch('/django-admin/data_manager/layer/get-layer-statuses/');
+          const data = await response.json();
+          const statusContainer = document.getElementById('status-container');
+          statusContainer.innerHTML = '';
+          for (const [layer, url] of Object.entries(data)) {
+              const status = '';
+              fetchStatus(url).then(status => {
+                  if (status) {
+                      console.log('Status:', status);
+                      status = status.status;
+                      const statusElement = document.createElement('div');
+                      statusElement.classList.add('success');
+                      statusElement.textContent = `${layer}: ${status}`;
+                      statusContainer.appendChild(statusElement);
+                  } else {
+                      console.log('Failed to fetch status');
+                      status = 'Failed to fetch status';
+                      const statusElement = document.createElement('div');
+                      statusElement.classList.add('fail');
+                      statusElement.textContent = `${layer}: ${status}`;
+                      statusContainer.appendChild(statusElement);
+                  }
+              }) 
+          }
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+         fetchLayerStatuses();
+      });
+  </script>
+  
+  <div id="status-container">Loading...</div>
+
+  <h1>Layer HTTP Status</h1>
+  <table>
+    <thead>
+      <tr>
+        <th>Layer Name</th>
+        <th>HTTP Status</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for layer, status in layer_statuses.items %}
+        <tr>
+          <td>{{ layer }}</td>
+          <td>{{ status }}</td>
+        </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+{% endblock %}

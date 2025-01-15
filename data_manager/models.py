@@ -9,7 +9,7 @@ from django.contrib.contenttypes.models import ContentType
 from django.contrib.admin.models import LogEntry
 from colorfield.fields import ColorField
 # From MARCO/utils.py
-
+import requests
 import uuid
 
 def get_domain(port=8010):
