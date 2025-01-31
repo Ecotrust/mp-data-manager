@@ -1,3 +1,5 @@
+import aiohttp
+import asyncio
 from django.conf import settings
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
@@ -197,7 +199,7 @@ class RemoteImportExportMixin(ImportExportMixin):
 class LayerAdmin(RemoteImportExportMixin, nested_admin.NestedModelAdmin):
     resource_class = LayerResource
     form = LayerForm
-    list_display = ('name', 'layer_type', 'date_modified', 'Theme_', 'order', 'data_publish_date', 'data_source', 'primary_site', 'preview_site', 'url')
+    list_display = ('name', 'url', 'http_status', 'layer_type', 'date_modified', 'Theme_', 'order', 'data_publish_date', 'data_source', 'primary_site', 'preview_site')
     search_fields = ['name', 'layer_type', 'date_modified', 'url', 'data_source']
     ordering = ('name', )
     exclude = ('slug_name',)
@@ -397,35 +399,30 @@ class LayerAdmin(RemoteImportExportMixin, nested_admin.NestedModelAdmin):
         custom_urls = [
             path('http-status/', self.admin_site.admin_view(self.http_status_view), name='http-status'),
             path('get-layer-statuses/', self.admin_site.admin_view(self.get_layer_statuses), name='get-layer-statuses'),
+            path('get-http-status/', self.admin_site.admin_view(self.get_http_status_view), name='get-http-status'),
         ]
         return custom_urls + urls
 
     def http_status_view(self, request):
         layers = Layer.objects.all()
-        layer_statuses = {}
-        for layer in layers:
-            if layer.name and layer.url:
-                layer_statuses[layer.name] = layer.url
         context = dict(
             self.admin_site.each_context(request),
-            layer_statuses=layer_statuses,
+            layers=layers,
         )
         return TemplateResponse(request, "admin/layer_http_status.html", context)
 
-    # async def get_http_status_async(self, url):
-    #     async with aiohttp.ClientSession() as session:
-    #         try:
-    #             async with session.head(url) as response:
-    #                 return response.status
-    #         except aiohttp.ClientError:
-    #             return None
-
-    def get_http_status(self, url):
+    async def get_http_status(self, url):
         try:
-            response = requests.head(url)
-            return response.status_code
-        except requests.RequestException:
+            async with aiohttp.ClientSession() as session:
+                async with session.head(url) as response:
+                    return response.status
+        except aiohttp.ClientError:
             return None
+
+    def http_status(self, obj):
+        return 'Loading...'
+
+    http_status.short_description = 'HTTP Status'
 
     def get_layer_statuses(self, request):
         layers = Layer.objects.all()
@@ -434,6 +431,11 @@ class LayerAdmin(RemoteImportExportMixin, nested_admin.NestedModelAdmin):
             if layer.name and layer.url:
                 layer_statuses[layer.name] = layer.url
         return JsonResponse(layer_statuses)
+
+    async def get_http_status_view(self, request):
+        url = request.GET.get('url')
+        status = await self.get_http_status(url)
+        return JsonResponse({'status': status if status else 'Fail'})
 
 class AttributeInfoAdmin(admin.ModelAdmin):
     list_display = ('field_name', 'display_name', 'precision', 'order', 'preserve_format')
