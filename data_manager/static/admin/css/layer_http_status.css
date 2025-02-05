@@ -1,0 +1,15 @@
+.success,
+.fail {
+    color: #dedede;
+    font-size: 9px;
+    padding: 2px 4px;
+    border-radius: 3px;
+}
+
+.success {
+    background-color: rgb(3, 191, 3);
+}
+
+.fail {
+    background-color: rgb(255, 31, 31);
+}

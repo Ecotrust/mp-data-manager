@@ -1,11 +1,10 @@
-import aiohttp
-import asyncio
 from django.conf import settings
 from django.contrib import admin
 from django.core.exceptions import PermissionDenied
 from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django import forms
+from django.utils.html import format_html
 
 from import_export import fields, resources
 from import_export.admin import ImportExportMixin
@@ -397,34 +396,19 @@ class LayerAdmin(RemoteImportExportMixin, nested_admin.NestedModelAdmin):
     def get_urls(self):
         urls = super().get_urls()
         custom_urls = [
-            path('http-status/', self.admin_site.admin_view(self.http_status_view), name='http-status'),
-            path('get-layer-statuses/', self.admin_site.admin_view(self.get_layer_statuses), name='get-layer-statuses'),
-            path('get-http-status/', self.admin_site.admin_view(self.get_http_status_view), name='get-http-status'),
+            path('get-layer-list/', self.admin_site.admin_view(self.get_layer_list), name='get-layer-list'),
         ]
         return custom_urls + urls
 
-    def http_status_view(self, request):
-        layers = Layer.objects.all()
-        context = dict(
-            self.admin_site.each_context(request),
-            layers=layers,
-        )
-        return TemplateResponse(request, "admin/layer_http_status.html", context)
-
-    async def get_http_status(self, url):
-        try:
-            async with aiohttp.ClientSession() as session:
-                async with session.head(url) as response:
-                    return response.status
-        except aiohttp.ClientError:
-            return None
-
     def http_status(self, obj):
-        return 'Loading...'
-
+        # Render a span with data attributes for the URL and name.
+        return format_html(
+            '<span class="http-status" data-url="{}" data-name="{}">Loading...</span>',
+            obj.url, obj.name
+        )
     http_status.short_description = 'HTTP Status'
 
-    def get_layer_statuses(self, request):
+    def get_layer_list(self, request):
         layers = Layer.objects.all()
         layer_statuses = {}
         for layer in layers:
@@ -432,10 +416,16 @@ class LayerAdmin(RemoteImportExportMixin, nested_admin.NestedModelAdmin):
                 layer_statuses[layer.name] = layer.url
         return JsonResponse(layer_statuses)
 
-    async def get_http_status_view(self, request):
-        url = request.GET.get('url')
-        status = await self.get_http_status(url)
-        return JsonResponse({'status': status if status else 'Fail'})
+    def changelist_view(self, request, extra_context=None):
+        extra_context = extra_context or {}
+        extra_context['layers'] = Layer.objects.all()
+        return super(LayerAdmin, self).changelist_view(request, extra_context=extra_context)
+
+    class Media:
+        js = ("admin/js/layer_http_status.js",)
+        css = {
+            'all': ("admin/css/layer_http_status.css",)
+        }
 
 class AttributeInfoAdmin(admin.ModelAdmin):
     list_display = ('field_name', 'display_name', 'precision', 'order', 'preserve_format')
