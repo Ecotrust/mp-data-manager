@@ -13,3 +13,8 @@
 .fail {
     background-color: rgb(255, 31, 31);
 }
+
+.refreshing {
+    background-color: rgb(255, 255, 0);
+    color: black;
+}
