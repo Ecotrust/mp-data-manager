@@ -1,59 +1,54 @@
 document.addEventListener('DOMContentLoaded', () => {
-    const elements = document.querySelectorAll('.http-status');
-    elements.forEach(el => {
-        const url = el.getAttribute('data-url');
-        if (url) {
-            fetchStatus(url).then(status => {
-                addStatus(el, status);
-            });
-            addRefreshButton(el, url);
-        }
+    const statusElements = document.querySelectorAll('.http-status');
+    statusElements.forEach(el => {
+        const url = el.dataset.url;
+        if (!url) return;
+        // Initially update the status element.
+        updateStatus(el, url);
+        // Append a refresh button next to the status element.
+        el.parentNode.appendChild(createRefreshButton(el, url));
     });
 });
 
-async function fetchStatus(url) {
+async function updateStatus(el, url) {
+    // Show refreshing state.
+    el.classList.add("refreshing");
+    el.textContent = "Refreshing...";
     try {
-        const response = await fetch(url);
-        return response.status;
+        const status = await fetchStatus(url);
+        displayStatus(el, status);
     } catch (error) {
-        console.error('Fetch error:', error);
-        return 404;
+        console.error("Error fetching status:", error);
+        displayStatus(el, 404);
+    } finally {
+        el.classList.remove("refreshing");
     }
 }
 
-function addStatus(el, status) {
-    const statusText = status === 200 ? `OK ${status}` : `Fail ${status}`;
-    el.textContent = statusText;
-    el.classList.add(status === 200 ? 'success' : 'fail');
+async function fetchStatus(url) {
+    const response = await fetch(url);
+    return response.status;
 }
 
-function addRefreshButton(el, url) {
-    let refreshLink = document.createElement("a");
-    refreshLink.href = url;
-    refreshLink.title = "Refresh Statuses";
-    refreshLink.style.display = "block";
-    refreshLink.style.width = "40px";
-    refreshLink.style.height = "40px";
-    refreshLink.innerHTML = `
-        <svg width="24" height="24" viewBox="0 0 24 24">
-            <path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 
-                     0 .46-.05.91-.14 1.34l1.46 1.46C19.48 13.16 
-                     20 12.12 20 11c0-4.42-3.58-8-8-8zm-6.36.64L4.22 
-                     6.04C3.87 6.53 3.67 7.12 3.67 7.75c0 4.42 3.58 8 
-                     8 8v3l4-4-4-4v3c-3.31 0-6-2.69-6-6 0-.63.2-1.22.56-1.71z" 
-                  fill="#000"/>
-        </svg>
-    `;
-    refreshLink.addEventListener("click", function (event) {
-        event.preventDefault();
-        el.classList.add("refreshing");
-        el.textContent = "Refreshing...";
-        fetchStatus(url).then(status => {
-            addStatus(el, status);
-        }).finally(() => {
-            el.classList.remove("refreshing");
-        });
+function displayStatus(el, status) {
+    const success = status === 200;
+    el.textContent = success ? `OK ${status}` : `Fail ${status}`;
+    el.classList.toggle('success', success);
+    el.classList.toggle('fail', !success);
+}
+
+function createRefreshButton(el, url) {
+    const button = document.createElement("button");
+    button.className = "btn-refresh";
+    button.type = "button";
+    button.title = "Refresh Status";
+    button.addEventListener("click", async (e) => {
+        e.preventDefault();
+        button.disabled = true;
+        button.classList.add("active");
+        await updateStatus(el, url);
+        button.classList.remove("active");
+        button.disabled = false;
     });
-    el.parentNode.appendChild(refreshLink);
-    console.log(el)
+    return button;
 }
