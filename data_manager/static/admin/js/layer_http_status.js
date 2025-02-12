@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const url = el.dataset.url;
         if (!url) return;
         // Initially update the status element.
-        updateStatus(el, url);
+        // updateStatus(el, url);
         // Append a refresh button next to the status element.
         el.parentNode.appendChild(createRefreshButton(el, url));
     });
@@ -17,6 +17,7 @@ async function updateStatus(el, url) {
     try {
         const status = await fetchStatus(url);
         displayStatus(el, status);
+        // saveHttpStatus(el, status);
     } catch (error) {
         console.error("Error fetching status:", error);
         displayStatus(el, 404);
@@ -30,6 +31,18 @@ async function fetchStatus(url) {
     return response.status;
 }
 
+async function saveHttpStatus(el) {
+    const layerId = el.dataset.layerId;
+    const saveUrl = window.location.pathname + "save-layer-status/" + layerId + "/";
+    try {
+        const response = await fetch(saveUrl);
+        const data = await response.json();
+        console.log(data);
+    } catch (error) {
+        console.error("Error saving layer status:", error);
+    }
+}
+
 function displayStatus(el, status) {
     const success = status === 200;
     el.textContent = success ? `OK ${status}` : `Fail ${status}`;
@@ -39,14 +52,15 @@ function displayStatus(el, status) {
 
 async function updateLayerStatus(el) {
     const layerId = el.dataset.layerId;
-    // Compute the refresh URL; assumes the endpoint is relative to the current path.
+    // window.location.pathname will be the data manager URL.
     const refreshUrl = window.location.pathname + "refresh-layer-status/" + layerId + "/";
+    saveHttpStatus(el);
     try {
         const response = await fetch(refreshUrl);
         const data = await response.json();
         displayStatus(el, data.status);
-        // Optionally, you could update another element with the new last_successful_http_status_check date.
-        console.log(`Last successful check: ${data.last_successful_http_status_check}`);
+        // TODO: update the last successful check field in the UI.
+        console.log(`Last successful check: ${data.last_success_status}`);
     } catch (error) {
         console.error("Error refreshing layer:", error);
         displayStatus(el, 404);
