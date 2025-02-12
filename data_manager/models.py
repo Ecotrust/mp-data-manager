@@ -212,6 +212,7 @@ class Layer(models.Model, SiteFlags):
     legend_subtitle = models.CharField(max_length=255, blank=True, null=True)
     show_legend = models.BooleanField(default=True, help_text='show the legend for this layer if available')
     utfurl = models.CharField(max_length=255, blank=True, null=True)
+    last_success_status = models.DateTimeField(null=True, blank=True)
 
     # RDH: utfjsonp does not appear to be used.
     # utfjsonp = models.BooleanField(default=False)

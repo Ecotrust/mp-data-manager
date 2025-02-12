@@ -5,6 +5,7 @@ from django.template.response import TemplateResponse
 from django.urls import path, reverse
 from django import forms
 from django.utils.html import format_html
+from django.utils import timezone
 
 from import_export import fields, resources
 from import_export.admin import ImportExportMixin
@@ -198,7 +199,7 @@ class RemoteImportExportMixin(ImportExportMixin):
 class LayerAdmin(RemoteImportExportMixin, nested_admin.NestedModelAdmin):
     resource_class = LayerResource
     form = LayerForm
-    list_display = ('name', 'url', 'http_status', 'layer_type', 'date_modified', 'Theme_', 'order', 'data_publish_date', 'data_source', 'primary_site', 'preview_site')
+    list_display = ('name', 'url', 'http_status', 'last_success_status', 'layer_type', 'date_modified', 'Theme_', 'order', 'data_publish_date', 'data_source', 'primary_site', 'preview_site')
     search_fields = ['name', 'layer_type', 'date_modified', 'url', 'data_source']
     ordering = ('name', )
     exclude = ('slug_name',)
@@ -397,16 +398,36 @@ class LayerAdmin(RemoteImportExportMixin, nested_admin.NestedModelAdmin):
         urls = super().get_urls()
         custom_urls = [
             path('get-layer-list/', self.admin_site.admin_view(self.get_layer_list), name='get-layer-list'),
+            path('refresh-layer-status/<int:layer_id>/', self.admin_site.admin_view(self.refresh_layer_status), name='refresh-layer-status'),
         ]
         return custom_urls + urls
 
     def http_status(self, obj):
-        # Render a span with data attributes for the URL and name.
+        # include the layer primary key in a data attribute for later use
         return format_html(
-            '<span class="http-status" data-url="{}" data-name="{}">Loading...</span>',
-            obj.url, obj.name
+            '<span class="http-status" data-layer-id="{}" data-url="{}" data-name="{}">Loading...</span>',
+            obj.pk, obj.url, obj.name
         )
     http_status.short_description = 'HTTP Status'
+
+    def refresh_layer_status(self, request, layer_id):
+        try:
+            layer = Layer.objects.get(pk=layer_id)
+        except Layer.DoesNotExist:
+            return JsonResponse({"error": "Layer not found"}, status=404)
+        try:
+            response = requests.head(layer.url, timeout=5, allow_redirects=True)
+            status = response.status_code
+        except Exception as e:
+            status = 404
+        if status == 200:
+            layer.last_success_status = timezone.now()
+            layer.save(update_fields=['last_success_status'])
+        return JsonResponse({
+            "layer": layer.name,
+            "status": status,
+            "last_success_status": layer.last_success_status.isoformat() if layer.last_success_status else None
+        })
 
     def get_layer_list(self, request):
         layers = Layer.objects.all()

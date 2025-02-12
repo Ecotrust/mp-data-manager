@@ -37,6 +37,22 @@ function displayStatus(el, status) {
     el.classList.toggle('fail', !success);
 }
 
+async function updateLayerStatus(el) {
+    const layerId = el.dataset.layerId;
+    // Compute the refresh URL; assumes the endpoint is relative to the current path.
+    const refreshUrl = window.location.pathname + "refresh-layer-status/" + layerId + "/";
+    try {
+        const response = await fetch(refreshUrl);
+        const data = await response.json();
+        displayStatus(el, data.status);
+        // Optionally, you could update another element with the new last_successful_http_status_check date.
+        console.log(`Last successful check: ${data.last_successful_http_status_check}`);
+    } catch (error) {
+        console.error("Error refreshing layer:", error);
+        displayStatus(el, 404);
+    }
+}
+
 function createRefreshButton(el, url) {
     const button = document.createElement("button");
     button.className = "btn-refresh";
@@ -46,7 +62,7 @@ function createRefreshButton(el, url) {
         e.preventDefault();
         button.disabled = true;
         button.classList.add("active");
-        await updateStatus(el, url);
+        await updateLayerStatus(el);
         button.classList.remove("active");
         button.disabled = false;
     });
