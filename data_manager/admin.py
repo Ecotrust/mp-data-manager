@@ -199,7 +199,7 @@ class RemoteImportExportMixin(ImportExportMixin):
 class LayerAdmin(RemoteImportExportMixin, nested_admin.NestedModelAdmin):
     resource_class = LayerResource
     form = LayerForm
-    list_display = ('name', 'url', 'http_status', 'last_http_status', 'last_success_status', 'layer_type', 'date_modified', 'Theme_', 'order', 'data_publish_date', 'data_source', 'primary_site', 'preview_site')
+    list_display = ('name', 'url', 'http_status', 'last_success_status', 'layer_type', 'date_modified', 'Theme_', 'order', 'data_publish_date', 'data_source', 'primary_site', 'preview_site')
     search_fields = ['name', 'layer_type', 'date_modified', 'url', 'data_source']
     ordering = ('name', )
     exclude = ('slug_name',)
@@ -398,20 +398,19 @@ class LayerAdmin(RemoteImportExportMixin, nested_admin.NestedModelAdmin):
         urls = super().get_urls()
         custom_urls = [
             path('get-layer-list/', self.admin_site.admin_view(self.get_layer_list), name='get-layer-list'),
-            path('refresh-layer-status/<int:layer_id>/', self.admin_site.admin_view(self.refresh_layer_status), name='refresh-layer-status'),
-            path('save-layer-status/<int:layer_id>/', self.admin_site.admin_view(self.save_layer_status), name='save-layer-status'),
+            path('update-layer-status/<int:layer_id>/', self.admin_site.admin_view(self.update_layer_status), name='update-layer-status'),
         ]
         return custom_urls + urls
 
     def http_status(self, obj):
         # include the layer primary key in a data attribute for later use
         return format_html(
-            '<span class="http-status" data-layer-id="{}" data-url="{}" data-name="{}">Loading...</span>',
-            obj.pk, obj.url, obj.name
+            '<span class="http-status" data-layer-id="{}" data-url="{}" data-name="{}" data-status="{}">{}</span>',
+            obj.pk, obj.url, obj.name, obj.last_http_status, obj.last_http_status
         )
     http_status.short_description = 'HTTP Status'
 
-    def save_layer_status(self, request, layer_id):
+    def update_layer_status(self, request, layer_id):
         try:
             layer = Layer.objects.get(pk=layer_id)
         except Layer.DoesNotExist:
@@ -422,29 +421,15 @@ class LayerAdmin(RemoteImportExportMixin, nested_admin.NestedModelAdmin):
         except Exception as e:
             status = 404
         layer.last_http_status = status
-        layer.save(update_fields=['last_http_status'])
+        update_fields = ['last_http_status']
+        if status == 200:
+            layer.last_success_status = timezone.now()
+            update_fields.append('last_success_status')
+        layer.save(update_fields=update_fields)
         return JsonResponse({
             "layer": layer.name,
             "status": status,
             "last_http_status": layer.last_http_status,
-        })
-
-    def refresh_layer_status(self, request, layer_id):
-        try:
-            layer = Layer.objects.get(pk=layer_id)
-        except Layer.DoesNotExist:
-            return JsonResponse({"error": "Layer not found"}, status=404)
-        try:
-            response = requests.get(layer.url, timeout=5, allow_redirects=True)
-            status = response.status_code
-        except Exception as e:
-            status = 404
-        if status == 200:
-            layer.last_success_status = timezone.now()
-            layer.save(update_fields=['last_success_status'])
-        return JsonResponse({
-            "layer": layer.name,
-            "status": status,
             "last_success_status": layer.last_success_status.isoformat() if layer.last_success_status else None
         })
 
