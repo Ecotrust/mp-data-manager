@@ -20,3 +20,5 @@ ELASTICSEARCH_SEARCH_FIELDS = [
 CATALOG_PROXY = ''
 
 ESPIS_ENABLED = False
+
+NATIVE_LAND_API_KEY = None #set this in local settings
