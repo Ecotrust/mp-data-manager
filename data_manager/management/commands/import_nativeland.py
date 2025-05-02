@@ -39,7 +39,7 @@ class Command(BaseCommand):
         
         from urllib.error import URLError
 
-        if not settings.NATIVE_LAND_API_KEY == None:
+        if settings.NATIVE_LAND_API_KEY is not None:
 
             NLD_DATA_DIR = os.path.join(settings.MEDIA_ROOT, 'data_manager', 'nativeland')
             NLD_BACKUP_DIR = os.path.join(NLD_DATA_DIR, 'backups')
