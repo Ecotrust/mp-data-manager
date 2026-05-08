@@ -462,8 +462,8 @@ class DataNeedAdmin(admin.ModelAdmin):
     list_display = ('name', 'description')
 
 if hasattr(settings, 'DATA_MANAGER_ADMIN'):
-    admin.site.register(Theme, ThemeAdmin)
-    admin.site.register(Layer, LayerAdmin)
+    # admin.site.register(Theme, ThemeAdmin)
+    # admin.site.register(Layer, LayerAdmin)
     admin.site.register(AttributeInfo, AttributeInfoAdmin)
     admin.site.register(LookupInfo, LookupInfoAdmin)
     admin.site.register(DataNeed, DataNeedAdmin)
